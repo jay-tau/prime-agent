@@ -362,6 +362,13 @@ export async function runAcpModeWithConnection(
 						})
 						.catch(() => undefined);
 				}
+				// Headless completion settles the gate loop, but the session can still
+				// be streaming this turn's residue (tool tails, late updates). The
+				// response is the client's signal that the next prompt is admissible,
+				// so it must not return before the session's own admission gate
+				// (waitForIdle) clears — otherwise a prompt sent right after end_turn
+				// is rejected with "Agent is already processing".
+				await connection.waitForIdle();
 				// A turn that failed (provider error, auth, no usable model) must not be
 				// reported as a clean end_turn. Print mode surfaces
 				// `stopReason: "error"` with its errorMessage; ACP previously dropped
